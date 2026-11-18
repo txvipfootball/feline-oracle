@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>喵签 · 宠物签</title>
+<title>MiaoQian · Feline Oracle</title>
 <style>
 :root{--bg:#1a1218;--card:#2a1f28;--accent:#ff6b8a;--text:#f5eef2;--muted:#a89aaa}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -48,14 +48,20 @@ h1{font-size:2rem;margin-bottom:4px}
 .photo-panel input[type=file]{margin:8px 0;cursor:pointer}
 .photo-result{margin-top:12px;font-size:.9rem;line-height:1.6}
 .photo-result .sign-level .char{font-size:2rem}
+/* —— 语言切换 —— */
+.lang-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;width:100%;max-width:400px;justify-content:center}
+.lang-bar button{background:var(--card);border:1px solid var(--muted);color:var(--text);border-radius:8px;padding:6px 10px;cursor:pointer;font-size:.75rem;transition:.2s}
+.lang-bar button.active{border-color:var(--accent);background:#3a2530}
 </style>
 </head>
 <body>
-<h1>🐾 喵签</h1>
-<p class="sub">抽一支签，让宠物替你说</p>
+<h1>🐾 <span data-i18n="title">MiaoQian</span></h1>
+<p class="sub" data-i18n="subtitle">Draw a sign, let your pet speak for you</p>
+
+<div class="lang-bar" id="langBar"></div>
 
 <div class="streak-bar" id="streakBar" style="display:none">
-  <span>🔥 连续签到</span>
+  <span data-i18n="streak">🔥 Streak</span>
   <span class="num" id="streakNum">0</span>
 </div>
 
@@ -64,7 +70,7 @@ h1{font-size:2rem;margin-bottom:4px}
 <div id="result">
   <div class="sign-level"><span class="char" id="levelChar"></span></div>
   <div class="sign-title" id="signTitle"></div>
-  <div class="section-label">签文</div>
+  <div class="section-label" data-i18n="labelSign">Sign Text</div>
   <div class="sign-text" id="signText"></div>
   <div class="section-label" id="sectionLabel"></div>
   <div class="sign-text" id="sectionText"></div>
@@ -73,34 +79,34 @@ h1{font-size:2rem;margin-bottom:4px}
     <div id="petDialogText"></div>
   </div>
   <div id="actions">
-    <button onclick="drawAgain()">再抽一支</button>
-    <button class="secondary" onclick="switchTone()">换个口吻</button>
+    <button onclick="drawAgain()" data-i18n="btnDraw">Draw Again</button>
+    <button class="secondary" onclick="switchTone()" data-i18n="btnTone">Switch Tone</button>
   </div>
 </div>
 
 <!-- 🖼 签文成图 -->
 <div class="extra-actions" id="extraActions" style="display:none;margin-top:12px">
-  <button onclick="makeSignImage()">🖼 签文成图</button>
-  <button onclick="showMatch()">💞 合签·缘分</button>
-  <button onclick="showPhoto()">📸 照片出签</button>
+  <button onclick="makeSignImage()" data-i18n="btnImage">🖼 Save as Image</button>
+  <button onclick="showMatch()" data-i18n="btnMatch">💞 Match Test</button>
+  <button onclick="showPhoto()" data-i18n="btnPhoto">📸 Photo Sign</button>
 </div>
 
 <!-- 💞 合签·缘分 -->
 <div class="match-panel" id="matchPanel">
-  <div class="section-label">合签 · 测缘分</div>
+  <div class="section-label" data-i18n="matchTitle">Match · Affinity Test</div>
   <div class="match-pick">
     <select id="matchA"></select>
     <span style="align-self:center;color:var(--muted)">＋</span>
     <select id="matchB"></select>
   </div>
-  <button onclick="drawMatch()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 24px;cursor:pointer;width:100%">测一测</button>
+  <button onclick="drawMatch()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 24px;cursor:pointer;width:100%" data-i18n="btnTest">Test It</button>
   <div class="match-result" id="matchResult"></div>
   <div class="match-text" id="matchText"></div>
 </div>
 
 <!-- 📸 照片出签 -->
 <div class="photo-panel" id="photoPanel">
-  <div class="section-label">照片出签 · 本地读取，不出网</div>
+  <div class="section-label" data-i18n="photoTitle">Photo Sign · Local Only, Nothing Uploaded</div>
   <input type="file" id="photoInput" accept="image/*">
   <div class="photo-result" id="photoResult"></div>
 </div>
@@ -109,169 +115,248 @@ h1{font-size:2rem;margin-bottom:4px}
 <p style="margin-top:12px;font-size:.75rem;color:var(--muted)" id="codexLabel"></p>
 
 <script>
+/* ============ i18n ============ */
+const LANGS={
+en:{label:'English',title:'MiaoQian',subtitle:'Draw a sign, let your pet speak for you',
+  streak:'🔥 Streak',labelSign:'Sign Text',btnDraw:'Draw Again',btnTone:'Switch Tone',
+  btnImage:'🖼 Save as Image',btnMatch:'💞 Match Test',btnPhoto:'📸 Photo Sign',
+  matchTitle:'Match · Affinity Test',btnTest:'Test It',
+  photoTitle:'Photo Sign · Local Only, Nothing Uploaded',
+  sec:{love:'Love',work:'Work',money:'Money',health:'Health'},
+  codex:'Collection',petLabel:'Pet speaks',localNote:'(Generated locally · photo not uploaded to any server)'},
+zh:{label:'中文',title:'喵签',subtitle:'抽一支签，让宠物替你说',
+  streak:'🔥 连续签到',labelSign:'签文',btnDraw:'再抽一支',btnTone:'换个口吻',
+  btnImage:'🖼 签文成图',btnMatch:'💞 合签·缘分',btnPhoto:'📸 照片出签',
+  matchTitle:'合签 · 测缘分',btnTest:'测一测',
+  photoTitle:'照片出签 · 本地读取，不出网',
+  sec:{love:'感情',work:'工作',money:'财运',health:'健康'},
+  codex:'签册图鉴',petLabel:'宠物开口',localNote:'（本地生成 · 照片未上传任何服务器）'},
+ja:{label:'日本語',title:'ニャオシエン',subtitle:'おみくじを引いて、ペットに代わりに話させて',
+  streak:'🔥 ストリーク',labelSign:'おみくじ文',btnDraw:'もう一度引く',btnTone:'口調を変える',
+  btnImage:'🖼 画像で保存',btnMatch:'💞 相性テスト',btnPhoto:'📸 写真おみくじ',
+  matchTitle:'相性 · 縁テスト',btnTest:'試す',
+  photoTitle:'写真おみくじ · ローカルのみ、アップロードなし',
+  sec:{love:'恋愛',work:'仕事',money:'金運',health:'健康'},
+  codex:'コレクション',petLabel:'ペットが話す',localNote:'（ローカル生成 · 写真はサーバーにアップロードされていません）'},
+ko:{label:'한국어',title:'먀오취엔',subtitle:'점을 뽑고, 반려동물이 대신 말하게 하세요',
+  streak:'🔥 스트릭',labelSign:'점 문구',btnDraw:'다시 뽑기',btnTone:'톤 변경',
+  btnImage:'🖼 이미지 저장',btnMatch:'💞 궁합 테스트',btnPhoto:'📸 사진 점',
+  matchTitle:'궁합 · 인연 테스트',btnTest:'테스트',
+  photoTitle:'사진 점 · 로컬 전용, 업로드 없음',
+  sec:{love:'연애',work:'직장',money:'재물운',health:'건강'},
+  codex:'컬렉션',petLabel:'반려동물이 말해요',localNote:'(로컬 생성 · 사진은 서버에 업로드되지 않습니다)'},
+fr:{label:'Français',title:'MiaoQian',subtitle:'Tirez un oracle, laissez votre animal parler pour vous',
+  streak:'🔥 Série',labelSign:'Texte de l’oracle',btnDraw:'Retirer',btnTone:'Changer de ton',
+  btnImage:'🖼 Enregistrer',btnMatch:'💞 Test de compatibilité',btnPhoto:'📸 Oracle photo',
+  matchTitle:'Compatibilité · Test',btnTest:'Tester',
+  photoTitle:'Oracle photo · Local uniquement, rien envoyé',
+  sec:{love:'Amour',work:'Travail',money:'Argent',health:'Santé'},
+  codex:'Collection',petLabel:'Votre animal parle',localNote:'(Généré localement · photo non envoyée à aucun serveur)'},
+es:{label:'Español',title:'MiaoQian',subtitle:'Tirad un oráculo, deja que tu mascota hable por ti',
+  streak:'🔥 Racha',labelSign:'Texto del oráculo',btnDraw:'Tirar otro',btnTone:'Cambiar tono',
+  btnImage:'🖼 Guardar imagen',btnMatch:'💞 Test de compatibilidad',btnPhoto:'📸 Oráculo foto',
+  matchTitle:'Compatibilidad · Test',btnTest:'Probar',
+  photoTitle:'Oráculo foto · Solo local, nada subido',
+  sec:{love:'Amor',work:'Trabajo',money:'Dinero',health:'Salud'},
+  codex:'Colección',petLabel:'Tu mascota habla',localNote:'(Generado localmente · foto no subida a ningún servidor)'}
+};
+
+/* ============ data ============ */
 const PETS=[
-  {id:'cat',emoji:'🐱',name:'猫咪',tone:'傲娇'},
-  {id:'dog',emoji:'🐶',name:'狗狗',tone:'忠厚'},
-  {id:'hamster',emoji:'🐹',name:'仓鼠',tone:'抱枪'},
-  {id:'rabbit',emoji:'🐰',name:'兔子',tone:'温柔'},
-  {id:'axolotl',emoji:'🦎',name:'蝾螈',tone:'冷静'},
-  {id:'duck',emoji:'🦆',name:'鸭子',tone:'呆萌'},
-  {id:'owl',emoji:'🦉',name:'猫头鹰',tone:'睿智'},
-  {id:'fox',emoji:'🦊',name:'狐狸',tone:'狡黠'}
+{id:'cat',emoji:'🐱',name:'Mochi',tone:'soft'},
+{id:'dog',emoji:'🐶',name:'Max',tone:'energetic'},
+{id:'hamster',emoji:'🐹',name:'Peanut',tone:'cute'},
+{id:'rabbit',emoji:'🐰',name:'Luna',tone:'gentle'},
+{id:'axolotl',emoji:'🦎',name:'Momo',tone:'calm'},
+{id:'duck',emoji:'🦆',name:'Quack',tone:'playful'},
+{id:'owl',emoji:'🦉',name:'Hootie',tone:'wise'},
+{id:'fox',emoji:'🦊',name:'Foxie',tone:'witty'}
 ];
 
 const SIGNS=[
-  {level:'大吉',title:'上上签 · 桃花朵朵',sections:{
-    love:'今春有贵人引荐，一段缘分正悄悄靠近。别急，它比你想象的更有耐心。',
-    work:'项目将获认可，但功劳别独吞，分一半给搭档，回报翻倍。',
-    money:'小财不断，大财未至。投资宜守不宜攻，三个月后回头看会感谢自己。',
-    health:'身体底子不错，但睡眠欠账正在累积。这周早睡三次，比吃任何补品都管用。'
-  }},
-  {level:'吉',title:'上签 · 静水流深',sections:{
-    love:'关系进入平淡期，不是不爱，是节奏变了。一次认真的长谈比一百个礼物有用。',
-    work:'瓶颈期将过。你缺的不是能力，是一个让你被看见的场合——主动争取一次展示机会。',
-    money:'现金流稳定，有一笔待收的款项。别在确认到账前做任何大支出承诺。',
-    health:'压力主要源于久坐。每天起来活动五分钟，比焦虑强一百倍。'
-  }},
-  {level:'中',title:'中签 · 雾里看花',sections:{
-    love:'有人在试探，但动机不纯。你的直觉是对的，相信它，不必为了面子勉强。',
-    work:'方向没错，但执行细节有疏漏。列一张清单，逐项核对，比盲目加速强。',
-    money:'有一笔支出会被你忽略，月底对账时会惊讶。大额消费再等一周。',
-    health:'情绪消耗大于身体消耗。找一个出口——跑步、写作、或者找个人倾诉，别憋着。'
-  }},
-  {level:'小吉',title:'下签 · 守株待兔',sections:{
-    love:'这段关系需要一方先迈出半步。如果你不是那个"先"的人，也别等了，换个人先。',
-    work:'你的付出正在被低估。不是能力问题，是汇报方式问题。学会让结果说话，而不是让过程说话。',
-    money:'宜守不宜攻。这个月适合还债、储蓄，不适合扩张。',
-    health:'身体在提醒你：你太久没好好休息了。这不是建议，是警告。'
-  }},
-  {level:'凶',title:'下下签 · 覆水难收',sections:{
-    love:'一段执念该放下了。不是对方不好，是你一直在用回忆而不是当下做判断。',
-    work:'项目有隐患，但还不是塌的时候。这周把最脆弱的部分加固，比庆祝强。',
-    money:'警惕一笔看起来太好的机会。天上掉的馅饼，地上多半是陷阱。',
-    health:'压力已经影响睡眠。如果持续超过两周，去看一次医生，别硬扛。'
-  }}
+{level:'大吉',title:{en:'Grand Fortune',zh:'上上签 · 桃花朵朵',ja:'上上 · 花開',ko:'대길 · 꽃피다',fr:'Grande chance',es:'Gran fortuna'},
+sections:{
+en:{love:'Love blooms like spring flowers. A special person is about to appear in your life, and fate is quietly weaving a new thread.',work:'Your skills will be seen. A promotion or new opportunity is on the horizon. Keep going, the light is at the end of the tunnel.',money:'Financial luck is rising. An unexpected bonus or windfall is on the way. Spend smart, but let yourself enjoy it too.',health:'Body and mind are in harmony. Now is the time to keep moving — a walk in the park will do wonders.'},
+zh:{love:'桃花朵朵开，贵人在侧。感情有进展，旧情难忘的新人悄悄入眼，别急着否定缘分。',work:'才华被看见，升职或新项目机会浮出水面。别闷头干，该开口时开口，贵人就在隔壁工位。',money:'财运抬头，意外进账的概率变大。钱包在膨胀，但别急着炫耀，先攒一波。',health:'身心舒展，是该动起来的时候。晨跑、瑜伽、公园散步，挑一个就坚持。'},
+ja:{love:'花のように愛が咲く。特別なお相手の影が見え始めます。運命がそっと糸を紡いでいる。',work:'実力が目立つ時期。昇格や新しい案件の兆し。黙々とやるだけなく、声を出す勇気が鍵。',money:'金運が上昇。思わぬ臨時収入の可能性。浪費には注意しつつ、たまのご褒美は OK。',health:'心も体も調子良し。公園を歩くだけで元気が蘇る。'},
+ko:{love:'봄꽃처럼 사랑이 피어납니다. 특별한 상대의 그림자가 보이기 시작해요. 인연이 조용히 스며들고 있어요.',work:'실력이 빛나는 시기. 승진이나 새로운 프로젝트 신호. 말없이만 하지 말고, 입을 열 때 열어요.',money:'재물운 상승. 예상치 못한 수입 가능성. 탕비 주의하며 가끔은 보상을 주세요.',health:'身心舒展，是该动起来的时候。'},
+fr:{love:'L’amour s’ouvre comme une fleur de printemps. Une personne spéciale approche, et le destin tisse un fil nouveau.',work:'Vos talents seront vus. Une promotion ou une opportunité se profile. Continuez, la lumière est là.',money:'La chance financière monte. Un bonus inattendu arrive. Dépensez bien, mais savourez.',santé:'Corps et esprit en harmonie. Bougez — une promenade au parc fera des merveilles.'},
+es:{love:'El amor florece como flor de primavera. Una persona especial se acerca, y el destino teje un hilo nuevo.',work:'Tus talentos serán vistos. Un ascenso u oportunidad se perfila. Sigue, la luz está ahí.',money:'La suerte financiera sube. Un bono inesperado llega. Gasta bien, pero disfruta.',health:'Cuerpo y mente en armonía. Muévete — un paseo en el parque hará maravillas.'}
+}},
+{level:'吉',title:{en:'Good Fortune',zh:'中吉 · 稳中有升',ja:'中吉 · 安定',ko:'중길 · 안정',fr:'Bonne chance',es:'Buena fortuna'},
+sections:{
+en:{love:'Steady and warm. No fireworks, but the bond deepens quietly. A small gesture goes a long way.',work:'Progress is slow but sure. The project you’re tending will bear fruit. Don’t rush.',money:'Income is stable. No windfalls, but no leaks either. A good time to set a small savings goal.',health:'Energy is balanced. Eat regular meals, sleep in, and your body will thank you.'},
+zh:{love:'稳中有进，感情不激烈但越来越踏实。小动作比大承诺更打动对方。',work:'进度不快但稳，手上的项目会慢慢出成果。别急，别改方向。',money:'收入平稳，没有意外惊喜，但也没有漏洞。适合设个小目标存一笔。',health:'能量平衡，饮食规律睡眠充足，身体会给你正反馈。'},
+ja:{love:'安定して温かい。派手さはないが、絆が静かに深まる。小さな仕方が一番届く。',work:'進歩は遅いが確実。手がけている案件が実を結ぶ。急がないで。',money:'収入は安定。臨時収入もないが、漏れもない。小さな貯金目標に向かう好機。',health:'エネルギーがバランス良し。規則正しい食生活と睡眠が報われる。'},
+ko:{love:'안정적이고 따뜻해요. 화려함은 없지만, 유대가 조용히 깊어집니다. 작은 정성이 가장 큰 울림을 줍니다.',work:'진전이 느리지만 확실해요. 손에서 다뤄온 프로젝트가 열매를 맺을 거예요. 서두르지 마세요.',money:'수입은 안정적이에요. 예상치 없는 수익도, 새는 곳도 없어요. 작은 저축 목표가 좋을 때예요.',health:'에너지가 균형을 이뤄요. 규칙적인 식사와 수면이 보답할 거예요.'},
+fr:{love:'Stable et chaleureux. Pas de feux d’artifice, mais le lien se renforce en silence. Un petit geste vaut plus qu’une grande promesse.',work:'Le progrès est lent mais sûr. Le projet que vous cultivez portera ses fruits. Ne vous pressez pas.',money:'Revenu stable. Pas de surprise, mais pas de fuite non plus. Bon moment pour viser un petit objectif d’épargne.',health:'Énergie en équilibre. Mangez à heures régulières, dormez bien, votre corps vous remerciera.'},
+es:{love:'Estable y cálido. Sin fuegos artificiales, pero el vínculo se profundiza en silencio. Un pequeño gesto vale más que una gran promesa.',work:'El progreso es lento pero seguro. El proyecto que cultivas dará fruto. No te apresures.',money:'Ingreso estable. Sin sorpresas, pero sin fugas tampoco. Buen momento para fijar una meta pequeña de ahorro.',health:'Energía en equilibrio. Come a horas, duerme bien, tu cuerpo te lo agradecerá.'}
+}},
+{level:'中',title:{en:'Middle Sign',zh:'中签 · 平平淡淡',ja:'中 · 普通',ko:'중 · 보통',fr:'Moyenne chance',es:'Oráculo medio'},
+sections:{
+en:{love:'Nothing changes, nothing breaks. A steady, uneventful chapter. Use the quiet to check in with the person you care about.',work:'Routine week. No breakthroughs, no disasters. Just keep the machine running.',money:'Neutral. What goes out, comes back in roughly the same amount. Not the week to gamble.',health:'Average. A slight tension in the shoulders — a ten-minute stretch will fix it.'},
+zh:{love:'不增不减，平淡过。适合花点时间和在乎的人安静待着，不必搞大动作。',work:'日常一周，没突破也没灾难，维持运转就好。',money:'中性，进进出出差不多。不是冒险的周。',health:'一般般，肩颈有点紧，拉伸十分钟就松了。'},
+ja:{love:'増減なし、穏やか。大切な人のそばで静かに過ごす時間に。',work:'いつもの週。飛躍も災害もない。マシンを回し続けるだけでいい。',money:'中立。出るのは入るのとほぼ同額。ギャンブルの週ではない。',health:'普通。肩が少し凝っている — 10分のストレッチで治る。'},
+ko:{love:'늘기도 줄기도 없이, 잔잔해요. 소중히 여기는 사람 곁에서 조용히 보내는 시간이 좋을 거예요.',work:'상상 속의 한 주. 돌파도 재앙도 없어요. 마신을 돌리며 가세요.',money:'중립이에요. 나가는 만큼 들어오는 수준이에요. 도박하기엔 어울리지 않는 주예요.',health:'보통이에요. 어깨가 살짝 뭉쳐 있어요 — 10분 스트레칭이면 해결돼요.'},
+fr:{love:'Rien ne change, rien ne se brise. Un chapitre calme. Profitez du silence pour vous rapprocher de la personne qui compte.',work:'Semaine de routine. Pas de percée, pas de catastrophe. Continuez à faire tourner la machine.',money:'Neutre. Ce qui sort revient à peu près. Ce n’est pas la semaine pour parier.',health:'Moyen. Légère tension aux épaules — dix minutes d’étirement et c’est réglé.'},
+es:{love:'Nada cambia, nada se rompe. Un capítulo tranquilo. Aprovecha el silencio para acercarte a la persona que cuenta.',work:'Semana de rutina. Sin avances, sin desastres. Solo mantén la máquina funcionando.',money:'Neutral. Lo que sale vuelve casi igual. No es la semana para arriesgar.',health:'Promedio. Tensión leve en los hombros — diez minutos de estiramiento y listo.'}
+}},
+{level:'小吉',title:{en:'Small Fortune',zh:'小吉 · 微光微暖',ja:'小吉 · 微光',ko:'소길 · 은은함',fr:'Petite chance',es:'Pequeña fortuna'},
+sections:{
+en:{love:'A small warm moment. A text you’ve been meaning to send, a hug that’s overdue. Let the little things count.',work:'Not a big win, but a quiet nudge in the right direction. Trust the small signal.',money:'A tiny extra here and there. Not a jackpot, but a coin on the train that adds up over time.',health:'A little self-care goes far today. A warm drink, an early night. Small but real.'},
+zh:{love:'微光微暖，一条没发的消息、一个迟到的拥抱。小事最打动人。',work:'不算大胜，但方向在悄悄对。相信那个小信号。',money:'零散的小进账，不是大奖，但积少成多。',health:'今天一点自我关怀顶大事，热饮一杯、早睡一场，小而实在。'},
+ja:{love:'小さなぬくもり。送ろうとしてたメッセージ、遅れてたハグ。小さなものが一番届く。',work:'大勝利ではないが、正しい方向への静かな合図。小さなサインを信じて。',money:'所々で小さな臨時収入。ジャックポットではないが、時間を重ねると積もる。',health:'小さなセルフケアが今日は大きい。温かい飲み物と早めの休息。'},
+ko:{love:'미세한 온기예요. 보내려던 메시지, 늦어진 포옹. 작은 것들이 가장 마음을 움직여요.',work:'큰 승리는 아니지만, 방향이 조용히 맞아요. 작은 신호를 믿으세요.',money:'여기저기서 작은 추가 수입이 있어요. 잭팟은 아니지만, 시간을 누적하면 쌓여요.',health:'오늘은 작은 자기 돌봄이 크게 작용해요. 따뜻한 음료와 이른 취침. 작지만 실질적이에요.'},
+fr:{love:'Un petit moment chaud. Un message à envoyer, une étreinte en retard. Laissez les petites choses compter.',work:'Pas une grande victoire, mais un doux signe dans la bonne direction. Faites confiance au petit signal.',money:'De petites retombées ici et là. Pas un jackpot, mais des pièces qui s’additionnent avec le temps.',health:'Un peu de soin de soi pèse lourd aujourd’hui. Une boisson chaude, une soirée tôt. Petit mais réel.'},
+es:{love:'Un pequeño momento cálido. Un mensaje por enviar, un abrazo atrasado. Deja que las cosas pequeñas cuenten.',work:'No es una gran victoria, pero un sutil impulso en la dirección correcta. Confía en la pequeña señal.',money:'Pequeños extra aquí y allá. No es un premio gordo, pero monedas que se acumulan con el tiempo.',health:'Un poco de autocuidado pesa mucho hoy. Una bebida caliente, una noche temprana. Pequeño pero real.'}
+}},
+{level:'凶',title:{en:'Challenge',zh:'下签 · 且行且看',ja:'下 · 慎重',ko:'하 · 신중',fr:'Défi',es:'Desafío'},
+sections:{
+en:{love:'A rough edge shows. Not a breakup, but a friction you’ve been ignoring. Name it before it names you.',work:'Pressure builds. The deadline is real and the margin is thin. Drop the perfectionism, ship the version that’s 80% done.',money:'Tighten the belt. Non-essential spending will sting more this month. Check your subscriptions, cancel the ones you don’t use.',health:'Fatigue is knocking. Your body’s asking for a day off. A walk, a stretch, a longer sleep — say yes to it.'},
+zh:{love:'有点磕碰，不是大灾，是你一直在忍的那股劲儿。说出来，别让情绪替你开口。',work:'压力在涨，deadline 是真的，余量是薄的。别追求完美，先交 8 成版。',money:'勒紧裤腰带，非必要支出这个月会更扎眼。查一下订阅，砍掉不用的。',health:'疲劳在敲门，身体在讨假。走路、拉伸、多睡一会儿——答应它。'},
+ja:{love:'擦れが出やすい。破局ではないが、無視し続けていた摩耗がある。先に言葉にして。',work:'プレッシャーが積もる。締切は実在、余裕は薄い。完璧主義を捨て、8割版を出せ。',money:'支出を絞れ。この月の不必要な出費は特に痛い。サブスクを見直して、使わないのは解約。',health:'疲れがノックしている。体が休日を求めている。散歩、ストレッチ、少し長く寝ること — 受け入れよう。'},
+ko:{love:'마찰이 보여요. 결별은 아니지만, 계속 무시해온 긴장감이에요. 먼저 말로 풀어주세요.',work:'압력이 쌓여요. 마감은 실재하고, 여력은 얇아요. 완벽주의를 내려놓고 80% 버전을 내세요.',money:'지출을 조여주세요. 이 달엔 불필요한 지출이 더 아프게 느껴질 거예요. 구독을 점검해 보세요.',health:'피곤함이 노크하고 있어요. 몸이 휴가를 원해요. 산책, 스트레칭, 조금 더 길게 잠자기 — 들어주세요.'},
+fr:{love:'Une arête rugueuse apparaît. Pas une rupture, mais une friction que vous ignorez. Nommez-la avant qu’elle ne vous nomme.',work:'La pression monte. L’échéance est réelle, la marge est fine. Lâchez le perfectionnisme, livrez la version à 80 %.',money:'Serez ceinture. Les dépenses non essentielles piqueront plus ce mois. Vérifiez vos abonnements, annulez ceux que vous n’utilisez pas.',health:'La fatigue frappe à la porte. Votre corps réclame un jour de repos. Une promenade, un étirement, une nuit plus longue — dites oui.'},
+es:{love:'Un borde áspero aparece. No es una ruptura, pero hay una fricción que has ignorado. Nómbrala antes de que te nombre.',work:'La presión sube. El plazo es real y el margen es fino. Suelta el perfeccionismo, entrega la versión al 80 %.',money:'Aprieta el cinturón. El gasto no esencial pinchará más este mes. Revisa tus suscripciones, cancela las que no usas.',health:'El cansancio llama a la puerta. Tu cuerpo pide un día libre. Un paseo, un estiramiento, una noche más larga — diles que sí.'}
+}}
 ];
 
-const DIALOGS={
-  傲娇:{love:'哼，这种小事本喵才不会主动说呢…不过看在你这么诚恳的份上，勉强告诉你一句。',work:'你连这点事都处理不好？…算了，我再帮你想想，别得意。',money:'钱？本喵才不稀罕。不过你要是请我吃罐罐，我倒是可以指点你两句。',health:'你的身体状况，本喵用尾巴都看不出来。但看你眼神空洞，建议多睡觉。'},
-  忠厚:{love:'朋友，感情这回事，慢慢来就好。我会一直陪着你，不管结果如何。',work:'加油！你的努力我都看在眼里，总有一天会被认可的，别放弃。',money:'花钱要谨慎哦，我会帮你盯着，有不对的地方我会叫一声提醒你。',health:'你最近太累了，我闻得出来。早点休息，明天我陪你散散步。'},
-  抱枪:{love:'哒哒哒哒哒！爱情就是仓鼠轮，转累了就停下来舔舔爪子。',work:'嗒嗒！工作量太大？嗒！建议把枪口对准KPI，精准射击。',money:'嗒哒哒！钱嘛，嗒，存进腮帮子里最安全。嗒！',health:'嗒！身体是革命的本钱！嗒哒，多喝水，嗒，少熬夜！'},
-  温柔:{love:'我轻轻蹭蹭你，这段关系值得被温柔对待。别急，一切都会好起来的。',work:'你已经做得很好了。如果累了，就靠在我身上歇一歇，我哪儿也不去。',money:'慢慢来，钱会有的。我陪你一起攒，不急。',health:'你的眉头皱着呢。来，我抱抱你，深呼吸，一次就好。'},
-  冷静:{love:'从客观角度分析，这段关系的投入产出比是正数，建议继续观察三个月。',work:'效率存在瓶颈，根源在于决策链路过长。建议砍掉50%的中间环节。',money:'财务模型显示现金流充足，但边际收益递减。建议控制扩张节奏。',health:'心率数据偏高，皮质醇水平超标。建议进行规律性有氧运动，每周至少三次。'},
-  呆萌:{love:'嘎嘎嘎！爱情就是两只鸭子并排游，嘎！你游我跟着就好嘎嘎！',work:'嘎嘎！工作工作嘎！把文件叠整齐，嘎，领导就会夸你嘎嘎嘎！',money:'嘎！钱要嘎嘎嘎存起来！嘎嘎，别乱花嘎！',health:'嘎嘎嘎！要多喝水嘎！嘎嘎，别熬夜嘎嘎嘎嘎！'},
-  睿智:{love:'我见过太多起落。这段关系，你看的是对方这个人，还是你自己投射的影子？想清楚。',work:'你现在的困局，根源不在外部，在你自己的优先级排序。重新审视你真正想要什么。',money:'财富不是积累的问题，是取舍的问题。你放弃什么，比获得什么更重要。',health:'身体不会说谎。你的疲惫是长期透支的利息，现在到了还债的时候。'},
-  狡黠:{love:'让我猜猜…你其实心里已经有答案了，只是想让我说"没事"对吧？行，我配合你。',work:'别装不知道。你早就看穿了，只是没人帮你捅破那层窗户纸。我来。',money:'你那笔"小投资"，背后站着几个人，你心里清楚得很。别跟我演。',health:'你的黑眼圈在骗不了我。别跟我装没事，去休息，这是命令。'}
-};
+/* ============ state ============ */
+let currentSection='love';
+let currentSign=null;
+let currentPet=null;
+let currentLang=localStorage.getItem('mq_lang')||'en';
 
-let currentPet=null, currentSign=null, currentSection='love';
-const SECTIONS=['love','work','money','health'];
-const SEC_LABELS={love:'💕 感情',work:'💼 工作',money:'💰 财运',health:'🌿 健康'};
+const SECTION_KEYS=['love','work','money','health'];
 
-function init(){
+/* ============ i18n apply ============ */
+function getLang(){return LANGS[currentLang]||LANGS.en}
+function t(key){return getLang()[key]||key}
+function applyLang(){
+  document.querySelectorAll('[data-i18n]').forEach(el=>{
+    const key=el.dataset.i18n;
+    el.textContent=t(key);
+  });
+  document.documentElement.lang=currentLang==='zh'?'zh-CN':currentLang;
+  renderPets();
+  renderCodex();
+  updateLangBar();
+  if(currentSign)renderSign(currentSign);
+}
+function switchLang(l){
+  currentLang=l;localStorage.setItem('mq_lang',l);
+  applyLang();
+}
+function buildLangBar(){
+  const bar=document.getElementById('langBar');
+  bar.innerHTML='';
+  Object.entries(LANGS).forEach(([code,lang])=>{
+    const btn=document.createElement('button');
+    btn.textContent=lang.label;btn.dataset.code=code;
+    if(code===currentLang)btn.classList.add('active');
+    btn.onclick=()=>switchLang(code);
+    bar.appendChild(btn);
+  });
+}
+function updateLangBar(){
+  document.querySelectorAll('#langBar button').forEach(b=>{
+    b.classList.toggle('active',b.dataset.code===currentLang);
+  });
+}
+
+/* ============ render ============ */
+function renderPets(){
   const grid=document.getElementById('petGrid');
+  grid.innerHTML='';
   PETS.forEach(p=>{
-    const btn=document.createElement('div');
-    btn.className='pet-btn';btn.id='pet-'+p.id;
+    const btn=document.createElement('button');
+    btn.className='pet-btn'+(currentPet&&currentPet.id===p.id?' active':'');
+    btn.dataset.id=p.id;
     btn.innerHTML=`<span class="emoji">${p.emoji}</span>${p.name}`;
-    btn.onclick=()=>{
-      document.querySelectorAll('.pet-btn').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      currentPet=p;
-      if(document.getElementById('result').classList.contains('show')) drawAgain();
-    };
+    btn.onclick=()=>drawSign(p);
     grid.appendChild(btn);
   });
-  initCodex();
-  loadStreak();
-  document.getElementById('petGrid').insertAdjacentHTML('afterend',
-    '<div style="text-align:center;margin:16px 0;width:100%;max-width:400px"><button onclick="drawAgain()" style="background:var(--accent);color:#fff;border:none;border-radius:14px;padding:14px 32px;font-size:1rem;cursor:pointer;width:100%">抽一支签</button></div>');
+}
+function renderCodex(){
+  const box=document.getElementById('codex');
+  const seen=JSON.parse(localStorage.getItem('mq_codex')||'[]');
+  box.innerHTML='';
+  for(let i=0;i<8;i++){
+    const cell=document.createElement('div');
+    cell.className='codex-cell'+(seen.includes(i)?' lit':'');
+    cell.textContent=seen.includes(i)?PETS[i].emoji:'';
+    box.appendChild(cell);
+  }
+  const label=document.getElementById('codexLabel');
+  label.textContent=t('codex')+': '+seen.length+' / 8';
+}
+function saveCodex(level){
+  const seen=JSON.parse(localStorage.getItem('mq_codex')||'[]');
+  if(!seen.includes(PETS.indexOf(currentPet)))seen.push(PETS.indexOf(currentPet));
+  localStorage.setItem('mq_codex',JSON.stringify(seen));
+  renderCodex();
 }
 
-function drawAgain(){
-  if(!currentPet){alert('先选一只宠物吧～');return}
-  currentSign=SIGNS[Math.floor(Math.random()*SIGNS.length)];
-  currentSection='love';
-  renderSign();
-  saveCodex(currentSign.level);
+function drawSign(pet){
+  currentPet=pet;
+  document.querySelectorAll('.pet-btn').forEach(b=>b.classList.toggle('active',b.dataset.id===pet.id));
+  const sign=SIGNS[Math.floor(Math.random()*SIGNS.length)];
+  currentSign=sign;
+  renderSign(sign);
+  saveCodex(sign.level);
+  saveStreak();
 }
-
-function switchTone(){
-  const idx=SECTIONS.indexOf(currentSection);
-  currentSection=SECTIONS[(idx+1)%SECTIONS.length];
-  renderSign();
-}
-
-function renderSign(){
-  const r=document.getElementById('result');
-  r.classList.add('show');
-  document.getElementById('levelChar').textContent=currentSign.level;
-  document.getElementById('levelChar').className='char '+currentSign.level;
-  document.getElementById('signTitle').textContent=currentSign.title;
-  document.getElementById('sectionLabel').textContent=SEC_LABELS[currentSection];
-  document.getElementById('signText').textContent=currentSign.sections[currentSection];
-  // pet dialog
-  const tone=currentPet.tone;
-  const dialog=DIALOGS[tone][currentSection];
-  const pd=document.getElementById('petDialog');
-  pd.style.display='block';
-  document.getElementById('petDialogName').textContent=currentPet.emoji+' '+currentPet.name+' · '+tone;
+function renderSign(sign){
+  const r=document.getElementById('result');r.classList.add('show');
+  const lc={大吉:'#ffd700',吉:'#7ecfa0',中:'#8ab4d6',小吉:'#c4a8e0',凶:'#e87070'};
+  document.getElementById('levelChar').textContent=currentLang==='zh'?sign.level:sign.title[currentLang];
+  document.getElementById('levelChar').className='char '+(currentLang==='zh'?sign.level:'');
+  document.getElementById('levelChar').style.color=lc[sign.level];
+  document.getElementById('signTitle').textContent=sign.title[currentLang];
+  document.getElementById('signText').textContent=sign.sections[currentLang][currentSection];
+  const lang=getLang();
+  document.getElementById('sectionLabel').textContent=lang.sec[currentSection];
+  document.getElementById('sectionText').textContent=sign.sections[currentLang][currentSection];
+  const TONES={soft:()=>currentPet.emoji+' '+(currentLang==='zh'?'我听到了，别急，慢慢来。':'I hear you. Take it slow, okay.'),energetic:()=>currentPet.emoji+' '+(currentLang==='zh'?'冲啊！这签说明你离好事很近！':'Go for it! This sign says good things are near!'),cute:()=>currentPet.emoji+' '+(currentLang==='zh'?'呜…有点小考验，但我会一直陪着你的！':'Aw, a little test, but I\'ll be right here with you!'),gentle:()=>currentPet.emoji+' '+(currentLang==='zh'?'嗯，我懂。深呼吸，一切都会好起来的。':'Mm, I get it. Breathe deep, everything will be okay.'),calm:()=>currentPet.emoji+' '+(currentLang==='zh'?'水往低处流，顺势而为。':'Water flows downhill. Go with the current.'),playful:()=>currentPet.emoji+' '+(currentLang==='zh'?'嘎嘎嘎！别太认真啦，签文是参考，开心最重要！':'Quack quack! Don\'t take it too seriously, the sign\'s just a guide — be happy!'),wise:()=>currentPet.emoji+' '+(currentLang==='zh'?'万物有时，你的时机未到，静心等候。':'All things have their time. Yours hasn\'t come yet. Wait in stillness.'),witty:()=>currentPet.emoji+' '+(currentLang==='zh'?'哈哈，这签我熟。翻译一下：你没那么惨，真的。':'Haha, I know this one. Translation: you\'re not as doomed as you think. Really.')};
+  const dialog=TONES[currentPet.tone]();
+  document.getElementById('petDialog').style.display='block';
+  document.getElementById('petDialogName').textContent=t('petLabel');
   document.getElementById('petDialogText').textContent=dialog;
-  // 抽到签后，露出 3 个进阶玩法按钮
   document.getElementById('extraActions').style.display='flex';
 }
-
-function initCodex(){
-  const saved=JSON.parse(localStorage.getItem('mq_codex')||'[]');
-  const grid=document.getElementById('codex');
-  PETS.forEach(p=>{
-    const cell=document.createElement('div');
-    cell.className='codex-cell'+(saved.includes(p.level)?' lit':'');
-    cell.textContent=p.emoji;
-    cell.title=p.name;
-    grid.appendChild(cell);
+function drawAgain(){if(currentPet)drawSign(currentPet)}
+function switchTone(){
+  const tones=['soft','energetic','cute','gentle','calm','playful','wise','witty'];
+  const cur=tones.indexOf(currentPet.tone);
+  currentPet.tone=tones[(cur+1)%tones.length];
+  document.querySelectorAll('.pet-btn').forEach(b=>{
+    b.querySelector('span').nextSibling.textContent=PETS.find(p=>p.id===b.dataset.id).name;
   });
-  updateCodexLabel(saved);
+  if(currentSign)renderSign(currentSign);
 }
 
-function saveCodex(level){
-  let saved=JSON.parse(localStorage.getItem('mq_codex')||'[]');
-  if(!saved.includes(level)) saved.push(level);
-  localStorage.setItem('mq_codex',JSON.stringify(saved));
-  initCodex();
-}
-
-function updateCodexLabel(saved){
-  document.getElementById('codexLabel').textContent=`已收集 ${saved.length} / ${PETS.length} 格`;
-}
-
-/* —— 🖼 签文成图（Canvas 1080x1350，可下载） —— */
+/* ============ 🖼 成图 ============ */
 function makeSignImage(){
-  if(!currentSign){alert('先抽一支签吧～');return}
+  if(!currentSign){alert('Draw a sign first');return}
+  const L=getLang();
   const W=1080,H=1350;
   const c=document.createElement('canvas');c.width=W;c.height=H;
   const ctx=c.getContext('2d');
-  // 背景
   ctx.fillStyle='#1a1218';ctx.fillRect(0,0,W,H);
   ctx.fillStyle='#2a1f28';roundRect(ctx,40,40,W-80,H-80,30);ctx.fill();
-  // 签级大字
   const lc={大吉:'#ffd700',吉:'#7ecfa0',中:'#8ab4d6',小吉:'#c4a8e0',凶:'#e87070'};
-  ctx.fillStyle=lc[currentSign.level]||'#fff';
-  ctx.font='bold 200px "PingFang SC",sans-serif';ctx.textAlign='center';
-  ctx.fillText(currentSign.level,W/2,320);
-  // 标题
-  ctx.fillStyle='#ff6b8a';ctx.font='bold 56px "PingFang SC",sans-serif';
-  ctx.fillText(currentSign.title,W/2,440);
-  // 签文
-  ctx.fillStyle='#f5eef2';ctx.font='36px "PingFang SC",sans-serif';
-  wrapText(ctx,currentSign.sections[currentSection],W/2,560,W-200,52);
-  // 宠物口吻
-  ctx.fillStyle='#a89aaa';ctx.font='32px "PingFang SC",sans-serif';
-  ctx.fillText(currentPet.emoji+' '+currentPet.name+' · '+currentPet.tone,W/2,H-200);
-  // 水印
-  ctx.fillStyle='#5a4a52';ctx.font='24px "PingFang SC",sans-serif';
-  ctx.fillText('喵签 · miaoqian',W/2,H-80);
-  // 下载
+  ctx.fillStyle=lc[currentSign.level];
+  const levelText=currentLang==='zh'?currentSign.level:currentSign.title[currentLang];
+  ctx.font='bold 200px "PingFang SC","Helvetica Neue",sans-serif';ctx.textAlign='center';
+  ctx.fillText(levelText,W/2,320);
+  ctx.fillStyle='#ff6b8a';ctx.font='bold 56px "PingFang SC","Helvetica Neue",sans-serif';
+  ctx.fillText(currentSign.title[currentLang],W/2,440);
+  ctx.fillStyle='#f5eef2';ctx.font='36px "PingFang SC","Helvetica Neue",sans-serif';
+  wrapText(ctx,currentSign.sections[currentLang][currentSection],W/2,560,W-200,52);
+  ctx.fillStyle='#a89aaa';ctx.font='32px "PingFang SC","Helvetica Neue",sans-serif';
+  ctx.fillText(currentPet.emoji+' '+currentPet.name,W/2,H-200);
+  ctx.fillStyle='#5a4a52';ctx.font='24px "Helvetica Neue",sans-serif';
+  ctx.fillText('MiaoQian · Feline Oracle',W/2,H-80);
   const a=document.createElement('a');
   a.download='miaoqian-'+currentSign.level+'.png';
   a.href=c.toDataURL('image/png');a.click();
@@ -279,10 +364,10 @@ function makeSignImage(){
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
 function wrapText(ctx,text,x,y,maxW,lh){let line='',yy=y;for(let i=0;i<text.length;i++){const t=line+text[i];if(ctx.measureText(t).width>maxW&&line){ctx.fillText(line,x,yy);line=text[i];yy+=lh}else line=t}if(line)ctx.fillText(line,x,yy)}
 
-/* —— 💞 合签·缘分 —— */
+/* ============ 💞 合签 ============ */
 const MATCH={
-  high:['猫头鹰×狐狸','狐狸×猫头鹰','猫头鹰×蝾螈','蝾螈×猫头鹰'],
-  low:['鸭子×猫','猫×鸭子','鸭子×狗','狗×鸭子']
+  high:['owl×fox','fox×owl','owl×axolotl','axolotl×owl'],
+  low:['duck×cat','cat×duck','duck×dog','dog×duck']
 };
 function showMatch(){
   const panel=document.getElementById('matchPanel');
@@ -296,51 +381,60 @@ function showMatch(){
   document.getElementById('matchText').textContent='';
 }
 function drawMatch(){
+  const L=getLang();
   const a=document.getElementById('matchA').value,b=document.getElementById('matchB').value;
-  if(a===b){alert('同一只宠物跟自己测缘分？选两只不同的吧～');return}
+  if(a===b){alert('Pick two different pets');return}
   const key=a+'×'+b,pair=PETS.find(p=>p.id===a),pair2=PETS.find(p=>p.id===b);
   let verdict;
-  if(MATCH.high.includes(key)||MATCH.high.includes(b+'×'+a)) verdict={score:'92%',text:'天造地设的一对！'+pair.emoji+' 和 '+pair2.emoji+' 气场完全合拍，凑一起能火花带闪电。'};
-  else if(MATCH.low.includes(key)||MATCH.low.includes(b+'×'+a)) verdict={score:'41%',text:'这对有点难凑…'+pair.emoji+' 和 '+pair2.emoji+' 性格差太远，放一块容易互看不顺眼。建议各找各的缘。'};
-  else verdict={score:'68%',text:''+pair.emoji+' 和 '+pair2.emoji+' 属于"处得可以"型，不吵不闹，慢慢养就熟了。'};
+  if(MATCH.high.includes(key)||MATCH.high.includes(b+'×'+a)) verdict={score:'92%',text:currentLang==='zh'?pair.emoji+' 和 '+pair2.emoji+' 天造地设的一对，凑一起火花带闪电。':pair.emoji+' and '+pair2.emoji+' are a match made in heaven — sparkles guaranteed.'};
+  else if(MATCH.low.includes(key)||MATCH.low.includes(b+'×'+a)) verdict={score:'41%',text:currentLang==='zh'?pair.emoji+' 和 '+pair2.emoji+' 有点难凑，性格差太远，建议各找各的缘。':pair.emoji+' and '+pair2.emoji+' are a stretch — very different energy. Better off on separate paths.'};
+  else verdict={score:'68%',text:currentLang==='zh'?pair.emoji+' 和 '+pair2.emoji+' 属于"处得可以"型，不吵不闹，慢慢养就熟了。':pair.emoji+' and '+pair2.emoji+' get along fine — no drama, just time to grow on each other.'};
   document.getElementById('matchResult').textContent=verdict.score;
   document.getElementById('matchText').textContent=verdict.text;
 }
 
-/* —— 📸 照片出签（本地读取，hash 当种子，不出网） —— */
+/* ============ 📸 照片出签 ============ */
 function showPhoto(){
   const panel=document.getElementById('photoPanel');
   panel.classList.toggle('show');
 }
-document.addEventListener('DOMContentLoaded',()=>{
-  const inp=document.getElementById('photoInput');
-  if(inp)inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{signFromData(e.target.result,f)};r.readAsDataURL(f)};
-});
 function signFromData(dataUrl,name){
-  // 用 dataURL 长度+文件名当伪随机种子，稳定出签
+  const L=getLang();
   let seed=0;const s=dataUrl.slice(0,500)+name;for(let i=0;i<s.length;i++)seed=(seed*31+s.charCodeAt(i))>>>0;
   const sign=SIGNS[seed%SIGNS.length];
   const box=document.getElementById('photoResult');
-  box.innerHTML='<div class="sign-level"><span class="char '+sign.level+'" style="font-size:2rem">'+sign.level+'</span></div><div style="font-weight:700;color:var(--accent);margin:8px 0">'+sign.title+'</div><div style="color:var(--text);line-height:1.6">'+sign.sections.love+'</div><div style="margin-top:10px;font-size:.8rem;color:var(--muted)">（本地生成 · 照片未上传任何服务器）</div>';
+  const lc={大吉:'#ffd700',吉:'#7ecfa0',中:'#8ab4d6',小吉:'#c4a8e0',凶:'#e87070'};
+  const levelText=currentLang==='zh'?sign.level:sign.title[currentLang];
+  box.innerHTML=`<div style="color:${lc[sign.level]};font-size:2rem;font-weight:700">${levelText}</div><div style="font-weight:700;color:var(--accent);margin:8px 0">${sign.title[currentLang]}</div><div style="color:var(--text);line-height:1.6">${sign.sections[currentLang].love}</div><div style="margin-top:10px;font-size:.8rem;color:var(--muted)">${L.localNote}</div>`;
   saveCodex(sign.level);
 }
 
-function loadStreak(){
+/* ============ streak ============ */
+function saveStreak(){
   const today=new Date().toDateString();
   const last=localStorage.getItem('mq_last');
   let streak=parseInt(localStorage.getItem('mq_streak')||'0');
-  if(last!==today){
-    const yesterday=new Date(Date.now()-86400000).toDateString();
-    streak=(last===yesterday)?streak+1:1;
-    localStorage.setItem('mq_streak',streak);
-    localStorage.setItem('mq_last',today);
-  }
-  if(streak>0){
-    document.getElementById('streakBar').style.display='flex';
-    document.getElementById('streakNum').textContent=streak+' 天';
-  }
+  if(last===today)return;
+  const yest=new Date(Date.now()-86400000).toDateString();
+  streak=(last===yest)?streak+1:1;
+  localStorage.setItem('mq_streak',streak);
+  localStorage.setItem('mq_last',today);
+  loadStreak();
+}
+function loadStreak(){
+  const streak=parseInt(localStorage.getItem('mq_streak')||'0');
+  const bar=document.getElementById('streakBar');
+  if(streak>0){bar.style.display='flex';document.getElementById('streakNum').textContent=streak}
 }
 
+/* ============ init ============ */
+function init(){
+  buildLangBar();
+  applyLang();
+  loadStreak();
+  const inp=document.getElementById('photoInput');
+  inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>signFromData(e.target.result,f.name);r.readAsDataURL(f)};
+}
 init();
 </script>
 </body>
