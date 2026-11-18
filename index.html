@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>喵签 · 宠物签</title>
+<style>
+:root{--bg:#1a1218;--card:#2a1f28;--accent:#ff6b8a;--text:#f5eef2;--muted:#a89aaa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px}
+h1{font-size:2rem;margin-bottom:4px}
+.sub{color:var(--muted);margin-bottom:24px;font-size:.9rem}
+.pet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;width:100%;max-width:400px}
+.pet-btn{background:var(--card);border:2px solid transparent;border-radius:16px;padding:12px 8px;cursor:pointer;text-align:center;transition:.2s;font-size:.85rem}
+.pet-btn.active{border-color:var(--accent);background:#3a2530}
+.pet-btn .emoji{font-size:2rem;display:block;margin-bottom:4px}
+#result{width:100%;max-width:400px;background:var(--card);border-radius:20px;padding:24px;display:none}
+#result.show{display:block;animation:fadeIn .4s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.sign-level{text-align:center;margin-bottom:12px}
+.sign-level .char{font-size:3rem;font-weight:700}
+.sign-level .char.大吉{color:#ffd700}.sign-level .char.吉{color:#7ecfa0}.sign-level .char.中{color:#8ab4d6}.sign-level .char.小吉{color:#c4a8e0}.sign-level .char.凶{color:#e87070}
+.sign-title{text-align:center;font-size:1.1rem;margin-bottom:16px;color:var(--accent)}
+.sign-text{line-height:1.8;font-size:.95rem;margin-bottom:16px;white-space:pre-line}
+.section-label{font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px}
+#actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+#actions button{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:.85rem}
+#actions button.secondary{background:transparent;border:1px solid var(--muted);color:var(--text)}
+.streak-bar{background:var(--card);border-radius:12px;padding:12px;margin-bottom:16px;width:100%;max-width:400px;display:flex;justify-content:space-between;align-items:center;font-size:.85rem}
+.streak-bar .num{font-size:1.4rem;font-weight:700;color:var(--accent)}
+.codex{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;width:100%;max-width:400px;margin-bottom:16px}
+.codex-cell{aspect-ratio:1;background:var(--card);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;opacity:.3}
+.codex-cell.lit{opacity:1;background:#3a2530}
+.pet-dialog{background:#2d1f28;border-left:3px solid var(--accent);padding:12px 16px;margin-top:16px;border-radius:0 12px 12px 0;font-size:.9rem;line-height:1.6}
+.pet-dialog .pet-name{font-weight:700;color:var(--accent);font-size:.8rem;margin-bottom:4px}
+</style>
+</head>
+<body>
+<h1>🐾 喵签</h1>
+<p class="sub">抽一支签，让宠物替你说</p>
+
+<div class="streak-bar" id="streakBar" style="display:none">
+  <span>🔥 连续签到</span>
+  <span class="num" id="streakNum">0</span>
+</div>
+
+<div class="pet-grid" id="petGrid"></div>
+
+<div id="result">
+  <div class="sign-level"><span class="char" id="levelChar"></span></div>
+  <div class="sign-title" id="signTitle"></div>
+  <div class="section-label">签文</div>
+  <div class="sign-text" id="signText"></div>
+  <div class="section-label" id="sectionLabel"></div>
+  <div class="sign-text" id="sectionText"></div>
+  <div class="pet-dialog" id="petDialog" style="display:none">
+    <div class="pet-name" id="petDialogName"></div>
+    <div id="petDialogText"></div>
+  </div>
+  <div id="actions">
+    <button onclick="drawAgain()">再抽一支</button>
+    <button class="secondary" onclick="switchTone()">换个口吻</button>
+  </div>
+</div>
+
+<div class="codex" id="codex" style="margin-top:24px"></div>
+<p style="margin-top:12px;font-size:.75rem;color:var(--muted)" id="codexLabel"></p>
+
+<script>
+const PETS=[
+  {id:'cat',emoji:'🐱',name:'猫咪',tone:'傲娇'},
+  {id:'dog',emoji:'🐶',name:'狗狗',tone:'忠厚'},
+  {id:'hamster',emoji:'🐹',name:'仓鼠',tone:'抱枪'},
+  {id:'rabbit',emoji:'🐰',name:'兔子',tone:'温柔'},
+  {id:'axolotl',emoji:'🦎',name:'蝾螈',tone:'冷静'},
+  {id:'duck',emoji:'🦆',name:'鸭子',tone:'呆萌'},
+  {id:'owl',emoji:'🦉',name:'猫头鹰',tone:'睿智'},
+  {id:'fox',emoji:'🦊',name:'狐狸',tone:'狡黠'}
+];
+
+const SIGNS=[
+  {level:'大吉',title:'上上签 · 桃花朵朵',sections:{
+    love:'今春有贵人引荐，一段缘分正悄悄靠近。别急，它比你想象的更有耐心。',
+    work:'项目将获认可，但功劳别独吞，分一半给搭档，回报翻倍。',
+    money:'小财不断，大财未至。投资宜守不宜攻，三个月后回头看会感谢自己。',
+    health:'身体底子不错，但睡眠欠账正在累积。这周早睡三次，比吃任何补品都管用。'
+  }},
+  {level:'吉',title:'上签 · 静水流深',sections:{
+    love:'关系进入平淡期，不是不爱，是节奏变了。一次认真的长谈比一百个礼物有用。',
+    work:'瓶颈期将过。你缺的不是能力，是一个让你被看见的场合——主动争取一次展示机会。',
+    money:'现金流稳定，有一笔待收的款项。别在确认到账前做任何大支出承诺。',
+    health:'压力主要源于久坐。每天起来活动五分钟，比焦虑强一百倍。'
+  }},
+  {level:'中',title:'中签 · 雾里看花',sections:{
+    love:'有人在试探，但动机不纯。你的直觉是对的，相信它，不必为了面子勉强。',
+    work:'方向没错，但执行细节有疏漏。列一张清单，逐项核对，比盲目加速强。',
+    money:'有一笔支出会被你忽略，月底对账时会惊讶。大额消费再等一周。',
+    health:'情绪消耗大于身体消耗。找一个出口——跑步、写作、或者找个人倾诉，别憋着。'
+  }},
+  {level:'小吉',title:'下签 · 守株待兔',sections:{
+    love:'这段关系需要一方先迈出半步。如果你不是那个"先"的人，也别等了，换个人先。',
+    work:'你的付出正在被低估。不是能力问题，是汇报方式问题。学会让结果说话，而不是让过程说话。',
+    money:'宜守不宜攻。这个月适合还债、储蓄，不适合扩张。',
+    health:'身体在提醒你：你太久没好好休息了。这不是建议，是警告。'
+  }},
+  {level:'凶',title:'下下签 · 覆水难收',sections:{
+    love:'一段执念该放下了。不是对方不好，是你一直在用回忆而不是当下做判断。',
+    work:'项目有隐患，但还不是塌的时候。这周把最脆弱的部分加固，比庆祝强。',
+    money:'警惕一笔看起来太好的机会。天上掉的馅饼，地上多半是陷阱。',
+    health:'压力已经影响睡眠。如果持续超过两周，去看一次医生，别硬扛。'
+  }}
+];
+
+const DIALOGS={
+  傲娇:{love:'哼，这种小事本喵才不会主动说呢…不过看在你这么诚恳的份上，勉强告诉你一句。',work:'你连这点事都处理不好？…算了，我再帮你想想，别得意。',money:'钱？本喵才不稀罕。不过你要是请我吃罐罐，我倒是可以指点你两句。',health:'你的身体状况，本喵用尾巴都看不出来。但看你眼神空洞，建议多睡觉。'},
+  忠厚:{love:'朋友，感情这回事，慢慢来就好。我会一直陪着你，不管结果如何。',work:'加油！你的努力我都看在眼里，总有一天会被认可的，别放弃。',money:'花钱要谨慎哦，我会帮你盯着，有不对的地方我会叫一声提醒你。',health:'你最近太累了，我闻得出来。早点休息，明天我陪你散散步。'},
+  抱枪:{love:'哒哒哒哒哒！爱情就是仓鼠轮，转累了就停下来舔舔爪子。',work:'嗒嗒！工作量太大？嗒！建议把枪口对准KPI，精准射击。',money:'嗒哒哒！钱嘛，嗒，存进腮帮子里最安全。嗒！',health:'嗒！身体是革命的本钱！嗒哒，多喝水，嗒，少熬夜！'},
+  温柔:{love:'我轻轻蹭蹭你，这段关系值得被温柔对待。别急，一切都会好起来的。',work:'你已经做得很好了。如果累了，就靠在我身上歇一歇，我哪儿也不去。',money:'慢慢来，钱会有的。我陪你一起攒，不急。',health:'你的眉头皱着呢。来，我抱抱你，深呼吸，一次就好。'},
+  冷静:{love:'从客观角度分析，这段关系的投入产出比是正数，建议继续观察三个月。',work:'效率存在瓶颈，根源在于决策链路过长。建议砍掉50%的中间环节。',money:'财务模型显示现金流充足，但边际收益递减。建议控制扩张节奏。',health:'心率数据偏高，皮质醇水平超标。建议进行规律性有氧运动，每周至少三次。'},
+  呆萌:{love:'嘎嘎嘎！爱情就是两只鸭子并排游，嘎！你游我跟着就好嘎嘎！',work:'嘎嘎！工作工作嘎！把文件叠整齐，嘎，领导就会夸你嘎嘎嘎！',money:'嘎！钱要嘎嘎嘎存起来！嘎嘎，别乱花嘎！',health:'嘎嘎嘎！要多喝水嘎！嘎嘎，别熬夜嘎嘎嘎嘎！'},
+  睿智:{love:'我见过太多起落。这段关系，你看的是对方这个人，还是你自己投射的影子？想清楚。',work:'你现在的困局，根源不在外部，在你自己的优先级排序。重新审视你真正想要什么。',money:'财富不是积累的问题，是取舍的问题。你放弃什么，比获得什么更重要。',health:'身体不会说谎。你的疲惫是长期透支的利息，现在到了还债的时候。'},
+  狡黠:{love:'让我猜猜…你其实心里已经有答案了，只是想让我说"没事"对吧？行，我配合你。',work:'别装不知道。你早就看穿了，只是没人帮你捅破那层窗户纸。我来。',money:'你那笔"小投资"，背后站着几个人，你心里清楚得很。别跟我演。',health:'你的黑眼圈在骗不了我。别跟我装没事，去休息，这是命令。'}
+};
+
+let currentPet=null, currentSign=null, currentSection='love';
+const SECTIONS=['love','work','money','health'];
+const SEC_LABELS={love:'💕 感情',work:'💼 工作',money:'💰 财运',health:'🌿 健康'};
+
+function init(){
+  const grid=document.getElementById('petGrid');
+  PETS.forEach(p=>{
+    const btn=document.createElement('div');
+    btn.className='pet-btn';btn.id='pet-'+p.id;
+    btn.innerHTML=`<span class="emoji">${p.emoji}</span>${p.name}`;
+    btn.onclick=()=>{
+      document.querySelectorAll('.pet-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPet=p;
+      if(document.getElementById('result').classList.contains('show')) drawAgain();
+    };
+    grid.appendChild(btn);
+  });
+  initCodex();
+  loadStreak();
+  document.getElementById('petGrid').insertAdjacentHTML('afterend',
+    '<div style="text-align:center;margin:16px 0;width:100%;max-width:400px"><button onclick="drawAgain()" style="background:var(--accent);color:#fff;border:none;border-radius:14px;padding:14px 32px;font-size:1rem;cursor:pointer;width:100%">抽一支签</button></div>');
+}
+
+function drawAgain(){
+  if(!currentPet){alert('先选一只宠物吧～');return}
+  currentSign=SIGNS[Math.floor(Math.random()*SIGNS.length)];
+  currentSection='love';
+  renderSign();
+  saveCodex(currentSign.level);
+}
+
+function switchTone(){
+  const idx=SECTIONS.indexOf(currentSection);
+  currentSection=SECTIONS[(idx+1)%SECTIONS.length];
+  renderSign();
+}
+
+function renderSign(){
+  const r=document.getElementById('result');
+  r.classList.add('show');
+  document.getElementById('levelChar').textContent=currentSign.level;
+  document.getElementById('levelChar').className='char '+currentSign.level;
+  document.getElementById('signTitle').textContent=currentSign.title;
+  document.getElementById('sectionLabel').textContent=SEC_LABELS[currentSection];
+  document.getElementById('signText').textContent=currentSign.sections[currentSection];
+  // pet dialog
+  const tone=currentPet.tone;
+  const dialog=DIALOGS[tone][currentSection];
+  const pd=document.getElementById('petDialog');
+  pd.style.display='block';
+  document.getElementById('petDialogName').textContent=currentPet.emoji+' '+currentPet.name+' · '+tone;
+  document.getElementById('petDialogText').textContent=dialog;
+}
+
+function initCodex(){
+  const saved=JSON.parse(localStorage.getItem('mq_codex')||'[]');
+  const grid=document.getElementById('codex');
+  PETS.forEach(p=>{
+    const cell=document.createElement('div');
+    cell.className='codex-cell'+(saved.includes(p.level)?' lit':'');
+    cell.textContent=p.emoji;
+    cell.title=p.name;
+    grid.appendChild(cell);
+  });
+  updateCodexLabel(saved);
+}
+
+function saveCodex(level){
+  let saved=JSON.parse(localStorage.getItem('mq_codex')||'[]');
+  if(!saved.includes(level)) saved.push(level);
+  localStorage.setItem('mq_codex',JSON.stringify(saved));
+  initCodex();
+}
+
+function updateCodexLabel(saved){
+  document.getElementById('codexLabel').textContent=`已收集 ${saved.length} / ${PETS.length} 格`;
+}
+
+function loadStreak(){
+  const today=new Date().toDateString();
+  const last=localStorage.getItem('mq_last');
+  let streak=parseInt(localStorage.getItem('mq_streak')||'0');
+  if(last!==today){
+    const yesterday=new Date(Date.now()-86400000).toDateString();
+    streak=(last===yesterday)?streak+1:1;
+    localStorage.setItem('mq_streak',streak);
+    localStorage.setItem('mq_last',today);
+  }
+  if(streak>0){
+    document.getElementById('streakBar').style.display='flex';
+    document.getElementById('streakNum').textContent=streak+' 天';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
