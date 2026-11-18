@@ -33,6 +33,21 @@ h1{font-size:2rem;margin-bottom:4px}
 .codex-cell.lit{opacity:1;background:#3a2530}
 .pet-dialog{background:#2d1f28;border-left:3px solid var(--accent);padding:12px 16px;margin-top:16px;border-radius:0 12px 12px 0;font-size:.9rem;line-height:1.6}
 .pet-dialog .pet-name{font-weight:700;color:var(--accent);font-size:.8rem;margin-bottom:4px}
+/* —— 成图 / 合签 / 照片出签 —— */
+.extra-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;width:100%;max-width:400px}
+.extra-actions button{flex:1;min-width:120px;background:#2d1f28;border:1px solid var(--muted);color:var(--text);border-radius:10px;padding:10px 8px;cursor:pointer;font-size:.8rem;transition:.2s}
+.extra-actions button:hover{border-color:var(--accent)}
+.match-panel{width:100%;max-width:400px;background:var(--card);border-radius:16px;padding:16px;margin-top:16px;display:none}
+.match-panel.show{display:block;animation:fadeIn .3s}
+.match-pick{display:flex;gap:8px;justify-content:center;margin:10px 0}
+.match-pick select{background:#2d1f28;color:var(--text);border:1px solid var(--muted);border-radius:8px;padding:8px 12px;font-size:.9rem}
+.match-result{text-align:center;margin-top:12px;font-size:1.6rem;font-weight:700;color:var(--accent)}
+.match-text{margin-top:8px;font-size:.9rem;line-height:1.6;color:var(--text)}
+.photo-panel{width:100%;max-width:400px;background:var(--card);border-radius:16px;padding:16px;margin-top:16px;display:none;text-align:center}
+.photo-panel.show{display:block;animation:fadeIn .3s}
+.photo-panel input[type=file]{margin:8px 0;cursor:pointer}
+.photo-result{margin-top:12px;font-size:.9rem;line-height:1.6}
+.photo-result .sign-level .char{font-size:2rem}
 </style>
 </head>
 <body>
@@ -61,6 +76,33 @@ h1{font-size:2rem;margin-bottom:4px}
     <button onclick="drawAgain()">再抽一支</button>
     <button class="secondary" onclick="switchTone()">换个口吻</button>
   </div>
+</div>
+
+<!-- 🖼 签文成图 -->
+<div class="extra-actions" id="extraActions" style="display:none;margin-top:12px">
+  <button onclick="makeSignImage()">🖼 签文成图</button>
+  <button onclick="showMatch()">💞 合签·缘分</button>
+  <button onclick="showPhoto()">📸 照片出签</button>
+</div>
+
+<!-- 💞 合签·缘分 -->
+<div class="match-panel" id="matchPanel">
+  <div class="section-label">合签 · 测缘分</div>
+  <div class="match-pick">
+    <select id="matchA"></select>
+    <span style="align-self:center;color:var(--muted)">＋</span>
+    <select id="matchB"></select>
+  </div>
+  <button onclick="drawMatch()" style="background:var(--accent);color:#fff;border:none;border-radius:10px;padding:10px 24px;cursor:pointer;width:100%">测一测</button>
+  <div class="match-result" id="matchResult"></div>
+  <div class="match-text" id="matchText"></div>
+</div>
+
+<!-- 📸 照片出签 -->
+<div class="photo-panel" id="photoPanel">
+  <div class="section-label">照片出签 · 本地读取，不出网</div>
+  <input type="file" id="photoInput" accept="image/*">
+  <div class="photo-result" id="photoResult"></div>
 </div>
 
 <div class="codex" id="codex" style="margin-top:24px"></div>
@@ -175,6 +217,8 @@ function renderSign(){
   pd.style.display='block';
   document.getElementById('petDialogName').textContent=currentPet.emoji+' '+currentPet.name+' · '+tone;
   document.getElementById('petDialogText').textContent=dialog;
+  // 抽到签后，露出 3 个进阶玩法按钮
+  document.getElementById('extraActions').style.display='flex';
 }
 
 function initCodex(){
@@ -199,6 +243,86 @@ function saveCodex(level){
 
 function updateCodexLabel(saved){
   document.getElementById('codexLabel').textContent=`已收集 ${saved.length} / ${PETS.length} 格`;
+}
+
+/* —— 🖼 签文成图（Canvas 1080x1350，可下载） —— */
+function makeSignImage(){
+  if(!currentSign){alert('先抽一支签吧～');return}
+  const W=1080,H=1350;
+  const c=document.createElement('canvas');c.width=W;c.height=H;
+  const ctx=c.getContext('2d');
+  // 背景
+  ctx.fillStyle='#1a1218';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#2a1f28';roundRect(ctx,40,40,W-80,H-80,30);ctx.fill();
+  // 签级大字
+  const lc={大吉:'#ffd700',吉:'#7ecfa0',中:'#8ab4d6',小吉:'#c4a8e0',凶:'#e87070'};
+  ctx.fillStyle=lc[currentSign.level]||'#fff';
+  ctx.font='bold 200px "PingFang SC",sans-serif';ctx.textAlign='center';
+  ctx.fillText(currentSign.level,W/2,320);
+  // 标题
+  ctx.fillStyle='#ff6b8a';ctx.font='bold 56px "PingFang SC",sans-serif';
+  ctx.fillText(currentSign.title,W/2,440);
+  // 签文
+  ctx.fillStyle='#f5eef2';ctx.font='36px "PingFang SC",sans-serif';
+  wrapText(ctx,currentSign.sections[currentSection],W/2,560,W-200,52);
+  // 宠物口吻
+  ctx.fillStyle='#a89aaa';ctx.font='32px "PingFang SC",sans-serif';
+  ctx.fillText(currentPet.emoji+' '+currentPet.name+' · '+currentPet.tone,W/2,H-200);
+  // 水印
+  ctx.fillStyle='#5a4a52';ctx.font='24px "PingFang SC",sans-serif';
+  ctx.fillText('喵签 · miaoqian',W/2,H-80);
+  // 下载
+  const a=document.createElement('a');
+  a.download='miaoqian-'+currentSign.level+'.png';
+  a.href=c.toDataURL('image/png');a.click();
+}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+function wrapText(ctx,text,x,y,maxW,lh){let line='',yy=y;for(let i=0;i<text.length;i++){const t=line+text[i];if(ctx.measureText(t).width>maxW&&line){ctx.fillText(line,x,yy);line=text[i];yy+=lh}else line=t}if(line)ctx.fillText(line,x,yy)}
+
+/* —— 💞 合签·缘分 —— */
+const MATCH={
+  high:['猫头鹰×狐狸','狐狸×猫头鹰','猫头鹰×蝾螈','蝾螈×猫头鹰'],
+  low:['鸭子×猫','猫×鸭子','鸭子×狗','狗×鸭子']
+};
+function showMatch(){
+  const panel=document.getElementById('matchPanel');
+  panel.classList.toggle('show');
+  const a=document.getElementById('matchA'),b=document.getElementById('matchB');
+  if(a.options.length===0){
+    PETS.forEach(p=>{a.add(new Option(p.emoji+' '+p.name,p.id));b.add(new Option(p.emoji+' '+p.name,p.id))});
+    a.value='owl';b.value='fox';
+  }
+  document.getElementById('matchResult').textContent='';
+  document.getElementById('matchText').textContent='';
+}
+function drawMatch(){
+  const a=document.getElementById('matchA').value,b=document.getElementById('matchB').value;
+  if(a===b){alert('同一只宠物跟自己测缘分？选两只不同的吧～');return}
+  const key=a+'×'+b,pair=PETS.find(p=>p.id===a),pair2=PETS.find(p=>p.id===b);
+  let verdict;
+  if(MATCH.high.includes(key)||MATCH.high.includes(b+'×'+a)) verdict={score:'92%',text:'天造地设的一对！'+pair.emoji+' 和 '+pair2.emoji+' 气场完全合拍，凑一起能火花带闪电。'};
+  else if(MATCH.low.includes(key)||MATCH.low.includes(b+'×'+a)) verdict={score:'41%',text:'这对有点难凑…'+pair.emoji+' 和 '+pair2.emoji+' 性格差太远，放一块容易互看不顺眼。建议各找各的缘。'};
+  else verdict={score:'68%',text:''+pair.emoji+' 和 '+pair2.emoji+' 属于"处得可以"型，不吵不闹，慢慢养就熟了。'};
+  document.getElementById('matchResult').textContent=verdict.score;
+  document.getElementById('matchText').textContent=verdict.text;
+}
+
+/* —— 📸 照片出签（本地读取，hash 当种子，不出网） —— */
+function showPhoto(){
+  const panel=document.getElementById('photoPanel');
+  panel.classList.toggle('show');
+}
+document.addEventListener('DOMContentLoaded',()=>{
+  const inp=document.getElementById('photoInput');
+  if(inp)inp.onchange=()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{signFromData(e.target.result,f)};r.readAsDataURL(f)};
+});
+function signFromData(dataUrl,name){
+  // 用 dataURL 长度+文件名当伪随机种子，稳定出签
+  let seed=0;const s=dataUrl.slice(0,500)+name;for(let i=0;i<s.length;i++)seed=(seed*31+s.charCodeAt(i))>>>0;
+  const sign=SIGNS[seed%SIGNS.length];
+  const box=document.getElementById('photoResult');
+  box.innerHTML='<div class="sign-level"><span class="char '+sign.level+'" style="font-size:2rem">'+sign.level+'</span></div><div style="font-weight:700;color:var(--accent);margin:8px 0">'+sign.title+'</div><div style="color:var(--text);line-height:1.6">'+sign.sections.love+'</div><div style="margin-top:10px;font-size:.8rem;color:var(--muted)">（本地生成 · 照片未上传任何服务器）</div>';
+  saveCodex(sign.level);
 }
 
 function loadStreak(){
